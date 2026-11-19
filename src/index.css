@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #030303;
+  --color-violet: #8b5cf6;
+  --color-lilac: #a78bfa;
+  --color-mist: #c4b5fd;
+}
+
+html {
+  background: #030303;
+  color-scheme: dark;
+}
+
+body {
+  background: #030303;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgb(139 92 246 / 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.15) transparent;
+}

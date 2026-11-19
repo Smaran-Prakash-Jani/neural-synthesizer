@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      This document runs code written by the model. It is loaded in an iframe with
+      sandbox="allow-scripts allow-forms" (no allow-same-origin), so it gets an opaque origin and
+      cannot read the parent page or its storage, where the visitor's API key lives. It may not
+      make network requests or navigate, and only loads React and Tailwind from pinned,
+      integrity-checked files.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data: blob: https:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <title>Preview</title>
+    <script
+      src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"
+      integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"
+      integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.12/dist/index.global.js"
+      integrity="sha384-LqBwoe0BcnbLWlaQKZjZo/kDoE/3vuU2CKdZ2Qx5LRUCF1sMAkb8j8jQY5QFgg6U"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      html, body { margin: 0; min-height: 100%; }
+      body { font-family: ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function () {
+        function send(msg) {
+          parent.postMessage(msg, '*');
+        }
+        function report(err) {
+          var message = err && err.message ? err.message : String(err);
+          send({ type: 'preview-error', message: message });
+        }
+        if (!window.React || !window.ReactDOM) {
+          report(new Error('The preview could not load React. Check your connection and reload.'));
+          return;
+        }
+
+        var root = ReactDOM.createRoot(document.getElementById('root'));
+
+        class Boundary extends React.Component {
+          constructor(props) {
+            super(props);
+            this.state = { error: null };
+          }
+          static getDerivedStateFromError(error) {
+            return { error: error };
+          }
+          componentDidCatch(error) {
+            report(error);
+          }
+          render() {
+            return this.state.error ? null : this.props.children;
+          }
+        }
+
+        function requireShim(name) {
+          if (name === 'react') return React;
+          if (name === 'react-dom' || name === 'react-dom/client') return ReactDOM;
+          throw new Error('The preview only provides React, so "' + name + '" can\'t be imported.');
+        }
+
+        var renders = 0;
+        window.addEventListener('message', function (event) {
+          if (event.source !== parent) return;
+          var data = event.data;
+          if (!data || data.type !== 'render' || typeof data.js !== 'string') return;
+          try {
+            var module = { exports: {} };
+            new Function('require', 'module', 'exports', 'React', data.js)(requireShim, module, module.exports, React);
+            var App = module.exports.default || module.exports.App;
+            if (typeof App !== 'function' && !(App && App.$$typeof)) {
+              throw new Error('The component needs a default export.');
+            }
+            window.scrollTo(0, 0);
+            root.render(React.createElement(Boundary, { key: ++renders }, React.createElement(App)));
+            send({ type: 'preview-rendered' });
+          } catch (err) {
+            report(err);
+          }
+        });
+        window.addEventListener('error', function (event) {
+          report(event.error || event.message);
+        });
+        window.addEventListener('unhandledrejection', function (event) {
+          report(event.reason);
+        });
+        send({ type: 'preview-ready' });
+      })();
+    </script>
+  </body>
+</html>
